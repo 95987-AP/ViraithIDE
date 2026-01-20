@@ -5,10 +5,13 @@ import { Board } from '@/components/kanban/Board';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { SignalFeed } from '@/components/signal/SignalFeed';
+import { TimelinePanel } from '@/components/timeline/TimelinePanel';
 import { CodeEditor } from '@/components/editor';
 import { ChatPanel } from '@/components/chat';
+import { TerminalPanel } from '@/components/terminal/TerminalPanel';
 import { ResizeHandle } from '@/components/layout/ResizeHandle';
 import { useBoardStore } from '@/store/boardStore';
+import { useTerminalStore } from '@/store/terminalStore';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
 import type { Board as BoardType, Column } from '@/types';
 
@@ -59,9 +62,10 @@ const DEMO_COLUMNS: Column[] = [
 ];
 
 export default function Home() {
-  const { setBoards, setColumns, setCurrentProject } = useBoardStore();
+  const { setBoards, setColumns, setCurrentProject, boards, columns } = useBoardStore();
   const [showSignalFeed, setShowSignalFeed] = useState(true);
   const [showChatPanel, setShowChatPanel] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
   const [mainView, setMainView] = useState<MainView>('board');
   const [openFilePath, setOpenFilePath] = useState<string | null>(null);
 
@@ -83,12 +87,26 @@ export default function Home() {
     storageKey: 'chat-panel-width',
   });
 
+  // Resizable terminal panel
+  const terminalPanelResize = useResizablePanel({
+    defaultHeight: 250,
+    minHeight: 150,
+    maxHeight: 500,
+    side: 'bottom',
+    storageKey: 'terminal-panel-height',
+  });
+
+  // Terminal store
+  const { isVisible: isTerminalVisible, togglePanel: toggleTerminal } = useTerminalStore();
+
   useEffect(() => {
-    // Initialize with demo data
-    setCurrentProject('project-1');
-    setBoards([DEMO_BOARD]);
-    setColumns(DEMO_COLUMNS);
-  }, [setBoards, setColumns, setCurrentProject]);
+    // Only initialize with demo data if there's no existing data (first run)
+    if (boards.length === 0 && columns.length === 0) {
+      setCurrentProject('project-1');
+      setBoards([DEMO_BOARD]);
+      setColumns(DEMO_COLUMNS);
+    }
+  }, [setBoards, setColumns, setCurrentProject, boards, columns]);
 
   // Handle file click from sidebar
   const handleFileClick = (path: string, name: string) => {
@@ -110,7 +128,11 @@ export default function Home() {
       <Header
         onToggleSignalFeed={() => setShowSignalFeed(!showSignalFeed)}
         onToggleChatPanel={() => setShowChatPanel(!showChatPanel)}
+        onToggleTimeline={() => setShowTimeline(!showTimeline)}
+        onToggleTerminal={toggleTerminal}
         showChatPanel={showChatPanel}
+        showTimeline={showTimeline}
+        showTerminal={isTerminalVisible}
       />
 
       {/* Main content */}
@@ -125,25 +147,35 @@ export default function Home() {
           />
         </div>
 
-        {/* Main area - Board or Editor */}
+        {/* Main area - Board or Editor with Terminal */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {mainView === 'board' ? (
-            <Board boardId="board-1" />
-          ) : (
-            <div className="h-full flex flex-col">
-              {/* Editor header with back button */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle bg-surface-elevated">
-                <button
-                  onClick={showBoardView}
-                  className="text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-                >
-                  ← Back to Board
-                </button>
-                <span className="text-xs font-mono text-text-dim">Code Editor</span>
+          {/* Content area */}
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            {mainView === 'board' ? (
+              <Board boardId="board-1" />
+            ) : (
+              <div className="h-full flex flex-col">
+                {/* Editor header with back button */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle bg-surface-elevated">
+                  <button
+                    onClick={showBoardView}
+                    className="text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    ← Back to Board
+                  </button>
+                  <span className="text-xs font-mono text-text-dim">Code Editor</span>
+                </div>
+                <CodeEditor className="flex-1" />
               </div>
-              <CodeEditor className="flex-1" />
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Terminal Panel */}
+          <TerminalPanel
+            height={terminalPanelResize.height || 250}
+            onResizeStart={terminalPanelResize.resizeHandleProps.onMouseDown}
+            isResizing={terminalPanelResize.isResizing}
+          />
         </main>
 
         {/* Right Side Panels */}
@@ -152,6 +184,13 @@ export default function Home() {
           {showSignalFeed && (
             <aside className="w-72 border-l border-border-subtle">
               <SignalFeed />
+            </aside>
+          )}
+
+          {/* Agent Timeline Panel */}
+          {showTimeline && (
+            <aside className="w-80 border-l border-border-subtle">
+              <TimelinePanel />
             </aside>
           )}
 

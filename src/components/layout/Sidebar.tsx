@@ -570,7 +570,8 @@ export function Sidebar({ onFileClick, width = 256 }: SidebarProps) {
           {/* Open */}
           <button
             onClick={() => {
-              if (contextMenu.node?.type === 'file') {
+              if (!contextMenu.node) return;
+              if (contextMenu.node.type === 'file') {
                 onFileClick?.(contextMenu.node.path, contextMenu.node.name);
               } else {
                 toggleFolder(contextMenu.node.path);

@@ -1,65 +1,84 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface UseResizablePanelProps {
-  defaultWidth: number;
+  defaultWidth?: number;
+  defaultHeight?: number;
   minWidth?: number;
   maxWidth?: number;
-  side: 'left' | 'right';
+  minHeight?: number;
+  maxHeight?: number;
+  side: 'left' | 'right' | 'top' | 'bottom';
   storageKey?: string;
 }
 
 export function useResizablePanel({
-  defaultWidth,
+  defaultWidth = 256,
+  defaultHeight = 250,
   minWidth = 180,
   maxWidth = 600,
+  minHeight = 150,
+  maxHeight = 600,
   side,
   storageKey,
 }: UseResizablePanelProps) {
-  const [width, setWidth] = useState(() => {
+  const isVertical = side === 'top' || side === 'bottom';
+  const defaultSize = isVertical ? defaultHeight : defaultWidth;
+  const minSize = isVertical ? minHeight : minWidth;
+  const maxSize = isVertical ? maxHeight : maxWidth;
+
+  const [size, setSize] = useState(defaultSize);
+
+  // Load from localStorage on mount
+  useEffect(() => {
     if (storageKey) {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = parseInt(stored, 10);
-        if (!isNaN(parsed) && parsed >= minWidth && parsed <= maxWidth) {
-          return parsed;
+        if (!isNaN(parsed) && parsed >= minSize && parsed <= maxSize) {
+          setSize(parsed);
         }
       }
     }
-    return defaultWidth;
-  });
+  }, [storageKey, minSize, maxSize]);
 
   const [isResizing, setIsResizing] = useState(false);
-  const startXRef = useRef(0);
-  const startWidthRef = useRef(width);
+  const startPosRef = useRef(0);
+  const startSizeRef = useRef(size);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
-    startXRef.current = e.clientX;
-    startWidthRef.current = width;
-  }, [width]);
+    startPosRef.current = isVertical ? e.clientY : e.clientX;
+    startSizeRef.current = size;
+  }, [size, isVertical]);
 
   useEffect(() => {
     if (!isResizing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - startXRef.current;
-      let newWidth: number;
+      const currentPos = isVertical ? e.clientY : e.clientX;
+      const delta = currentPos - startPosRef.current;
+      let newSize: number;
 
-      if (side === 'left') {
-        newWidth = startWidthRef.current + deltaX;
+      if (side === 'left' || side === 'bottom') {
+        newSize = startSizeRef.current + delta;
       } else {
-        newWidth = startWidthRef.current - deltaX;
+        newSize = startSizeRef.current - delta;
       }
 
-      newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-      setWidth(newWidth);
+      // For bottom panels, dragging up should increase height
+      if (side === 'bottom') {
+        newSize = startSizeRef.current - delta;
+      }
+
+      newSize = Math.max(minSize, Math.min(maxSize, newSize));
+      setSize(newSize);
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       if (storageKey) {
-        localStorage.setItem(storageKey, width.toString());
+        localStorage.setItem(storageKey, size.toString());
       }
     };
 
@@ -70,10 +89,12 @@ export function useResizablePanel({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, minWidth, maxWidth, side, storageKey, width]);
+  }, [isResizing, minSize, maxSize, side, storageKey, size, isVertical]);
 
   return {
-    width,
+    width: isVertical ? undefined : size,
+    height: isVertical ? size : undefined,
+    size,
     isResizing,
     resizeHandleProps: {
       onMouseDown: handleMouseDown,

@@ -110,6 +110,27 @@ export interface AgentLog {
   metadata: Record<string, unknown>;
 }
 
+// Extended execution type for timeline with more details
+export interface TimelineExecution extends CardExecution {
+  cardTitle: string;
+  cardDescription?: string;
+  model: string;
+  skillsUsed: string[];
+  filesCreated: string[];
+  filesModified: string[];
+  promptUsed: string;
+  responseText: string;
+  duration?: number; // in milliseconds
+}
+
+// File change tracking for diff viewer
+export interface FileChange {
+  path: string;
+  type: 'created' | 'modified' | 'deleted';
+  beforeContent?: string;
+  afterContent?: string;
+}
+
 export interface SignalEvent {
   source: string;
   message: string;

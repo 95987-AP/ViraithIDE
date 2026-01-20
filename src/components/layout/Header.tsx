@@ -9,6 +9,8 @@ import {
   Maximize2,
   Minimize2,
   Sparkles,
+  History,
+  Terminal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -16,10 +18,14 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 interface HeaderProps {
   onToggleSignalFeed: () => void;
   onToggleChatPanel?: () => void;
+  onToggleTimeline?: () => void;
+  onToggleTerminal?: () => void;
   showChatPanel?: boolean;
+  showTimeline?: boolean;
+  showTerminal?: boolean;
 }
 
-export function Header({ onToggleSignalFeed, onToggleChatPanel, showChatPanel }: HeaderProps) {
+export function Header({ onToggleSignalFeed, onToggleChatPanel, onToggleTimeline, onToggleTerminal, showChatPanel, showTimeline, showTerminal }: HeaderProps) {
   const [isMaximized, setIsMaximized] = useState(false);
   const appWindowRef = useRef<ReturnType<typeof getCurrentWindow> | null>(null);
 
@@ -129,6 +135,28 @@ export function Header({ onToggleSignalFeed, onToggleChatPanel, showChatPanel }:
           title="Local AI Agent"
         >
           <Sparkles className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={onToggleTimeline}
+          className={cn(
+            'btn-icon',
+            showTimeline && 'text-accent'
+          )}
+          title="Agent Timeline"
+        >
+          <History className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={onToggleTerminal}
+          className={cn(
+            'btn-icon',
+            showTerminal && 'text-accent'
+          )}
+          title="Toggle Terminal"
+        >
+          <Terminal className="w-4 h-4" />
         </button>
 
         <button className="btn-icon" title="Settings">

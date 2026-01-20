@@ -138,7 +138,7 @@ class GLMAgent {
 
   private providers = {
     zai: {
-      baseUrl: 'https://api.z.ai/api/paas/v4/chat/completions',
+      baseUrl: 'https://api.z.ai/api/coding/paas/v4/chat/completions',
       model: 'glm-4.7',
       envKey: 'NEXT_PUBLIC_GLM_API_KEY',
     },
@@ -366,8 +366,25 @@ class GLMAgent {
 
         // Handle other error responses
         if (!response.ok) {
-          const error = await response.text();
-          lastError = `API error (${this.provider}): ${response.status} - ${error}`;
+          const errorText = await response.text();
+          let errorDetails = errorText;
+
+          // Try to parse as JSON for better error display
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorDetails = JSON.stringify(errorJson, null, 2);
+          } catch {
+            // Keep original text if not JSON
+          }
+
+          console.error(`[GLM Agent] API Error Details:`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: errorDetails,
+          });
+
+          lastError = `API error (${this.provider}): ${response.status} - ${errorText}`;
 
           // Don't retry on client errors (4xx except 429)
           if (response.status >= 400 && response.status < 500 && response.status !== 429) {

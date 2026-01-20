@@ -9,6 +9,7 @@ import type { Card as CardType } from '@/types';
 import { useBoardStore } from '@/store/boardStore';
 import { useSkillsStore } from '@/store/skillsStore';
 import { useFileStore } from '@/store/fileStore';
+import { useTimelineStore } from '@/store/timelineStore';
 import { cn, truncatePath } from '@/lib/utils';
 import { glmAgent, isAgentConfigured } from '@/lib/agent';
 import {
@@ -50,6 +51,7 @@ export function Card({ card, isDragging }: CardProps) {
   } = useBoardStore();
   const { skills } = useSkillsStore();
   const { projectPath } = useFileStore();
+  const { startExecution, completeExecution } = useTimelineStore();
   const [isDraggingFolder, setIsDraggingFolder] = useState(false);
   const [showAgentDialog, setShowAgentDialog] = useState(false);
   const [agentPrompt, setAgentPrompt] = useState('');
@@ -213,33 +215,50 @@ export function Card({ card, isDragging }: CardProps) {
     // Set status to executing
     updateCardStatus(card.id, 'executing');
 
+    // Build skills context and get skill names for timeline
+    let skillsContext = '';
+    const skillNames: string[] = [];
+    if (attachedSkillIds.length > 0) {
+      const attachedSkills = attachedSkillIds
+        .map((id) => skills.find((s) => s.id === id))
+        .filter((skill): skill is NonNullable<typeof skill> => skill !== undefined);
+      skillsContext = '\n## Assigned Skills\n' +
+        attachedSkills
+          .map((skill) => `### ${skill.name}\n${skill.description}\n${skill.content}`)
+          .join('\n\n---\n');
+      skillNames.push(...attachedSkills.map((s) => s.name));
+    }
+
+    // Use card's folder path or fall back to project path
+    const finalWorkingPath = card.folderPath || projectPath || undefined;
+
+    // Generate auto-prompt from card data
+    const autoPrompt = glmAgent.generateAutoPrompt(
+      card.title,
+      card.description,
+      finalWorkingPath,
+      skillsContext || undefined
+    );
+
+    // Start timeline execution tracking
+    const executionId = startExecution({
+      cardId: card.id,
+      cardTitle: card.title,
+      cardDescription: card.description,
+      agentType: card.agentConfig.type || 'general',
+      model: 'deepseek-chat',
+      skillsUsed: skillNames,
+      promptUsed: autoPrompt,
+      inputContext: {
+        folderPath: finalWorkingPath,
+        attachedSkills: skillNames,
+      },
+    });
+
     try {
-      // Build skills context
-      let skillsContext = '';
-      if (attachedSkillIds.length > 0) {
-        const attachedSkills = attachedSkillIds
-          .map((id) => skills.find((s) => s.id === id))
-          .filter((skill): skill is NonNullable<typeof skill> => skill !== undefined);
-        skillsContext = '\n## Assigned Skills\n' +
-          attachedSkills
-            .map((skill) => `### ${skill.name}\n${skill.description}\n${skill.content}`)
-            .join('\n\n---\n');
-      }
-
-      // Use card's folder path or fall back to project path
-      const workingPath = card.folderPath || projectPath || undefined;
-
-      // Generate auto-prompt from card data
-      const autoPrompt = glmAgent.generateAutoPrompt(
-        card.title,
-        card.description,
-        workingPath,
-        skillsContext || undefined
-      );
-
       // Call GLM-4 API with file operations support
       const response = await glmAgent.executeTaskWithFiles(autoPrompt, {
-        folderPath: workingPath,
+        folderPath: finalWorkingPath,
       });
 
       if (response.success) {
@@ -258,22 +277,42 @@ export function Card({ card, isDragging }: CardProps) {
           summary += `\n\n📝 Files modified:\n${response.filesModified.map(f => `- ${f}`).join('\n')}`;
         }
 
+        // Complete timeline execution with success
+        completeExecution(executionId, {
+          status: 'success',
+          responseText: response.content,
+          filesCreated: response.filesCreated || [],
+          filesModified: response.filesModified || [],
+          outputResult: { summary },
+        });
+
         // Update card with success
         updateCardStatus(card.id, 'done');
         updateCard(card.id, {
           metadata: {
             ...card.metadata,
+            lastExecutionId: executionId,
             lastAgentResponse: summary,
             lastAgentError: undefined,
             lastAgentTimestamp: Date.now(),
           },
         });
       } else {
+        // Complete timeline execution with failure
+        completeExecution(executionId, {
+          status: 'failed',
+          responseText: '',
+          filesCreated: [],
+          filesModified: [],
+          errorMessage: response.error || 'Unknown error',
+        });
+
         // Update card with error
         updateCardStatus(card.id, 'error');
         updateCard(card.id, {
           metadata: {
             ...card.metadata,
+            lastExecutionId: executionId,
             lastAgentResponse: undefined,
             lastAgentError: response.error || 'Unknown error',
             lastAgentTimestamp: Date.now(),
@@ -281,13 +320,25 @@ export function Card({ card, isDragging }: CardProps) {
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Complete timeline execution with failure
+      completeExecution(executionId, {
+        status: 'failed',
+        responseText: '',
+        filesCreated: [],
+        filesModified: [],
+        errorMessage,
+      });
+
       // Update card with error
       updateCardStatus(card.id, 'error');
       updateCard(card.id, {
         metadata: {
           ...card.metadata,
+          lastExecutionId: executionId,
           lastAgentResponse: undefined,
-          lastAgentError: error instanceof Error ? error.message : 'Unknown error',
+          lastAgentError: errorMessage,
           lastAgentTimestamp: Date.now(),
         },
       });

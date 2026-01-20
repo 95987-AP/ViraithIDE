@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -33,6 +33,11 @@ export function Board({ boardId }: BoardProps) {
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const boardColumns = columns
     .filter((col) => col.boardId === boardId)
@@ -118,9 +123,13 @@ export function Board({ boardId }: BoardProps) {
           <span className="text-text-muted">board/</span>main
         </h2>
         <div className="flex items-center gap-2 text-2xs text-text-muted">
-          <span>{boardColumns.length} columns</span>
-          <span className="text-border">|</span>
-          <span>{cards.length} cards</span>
+          {mounted && (
+            <>
+              <span>{boardColumns.length} columns</span>
+              <span className="text-border">|</span>
+              <span>{cards.length} cards</span>
+            </>
+          )}
         </div>
       </div>
 
