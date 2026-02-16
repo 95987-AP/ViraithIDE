@@ -147,7 +147,7 @@ export function Board({ boardId }: BoardProps) {
               items={boardColumns.map((col) => col.id)}
               strategy={horizontalListSortingStrategy}
             >
-              {boardColumns.map((column) => (
+              {mounted && boardColumns.map((column) => (
                 <Column
                   key={column.id}
                   column={column}

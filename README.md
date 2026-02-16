@@ -1,105 +1,109 @@
 # VIRAITH IDE
 
-> Observe. Compare. Build.
+**Observe. Compare. Build.**
 
-A desktop IDE that combines project management with development tools. The first Kanban board that codes.
+VIRAITH IDE is an **AI-native desktop IDE** where **a Kanban card is the unit of work**: plan tasks, attach code context, and run an agent against that scope. Built with **Tauri (Rust)** + **Next.js/React (TypeScript)**.
 
-## Overview
+---
 
-VIRAITH IDE is a unified development environment where moving a task card doesn't just change status—it can execute work. Built with Tauri 2.0 for a lightweight, fast, and secure desktop experience.
+## Screenshot (no deployment needed)
 
-## Features (Phase 1)
+<img src="./AgentViewBoard.png" alt="VIRAITH IDE: Kanban + Local Agent view" width="900" />
 
-- **Kanban Board** - Drag-and-drop task management with @dnd-kit
-- **Card Context** - Attach folders to cards for agent context
-- **File Explorer** - Browse project files with tree view
-- **Terminal** - Built-in terminal interface (placeholder, full xterm.js in Phase 2)
-- **Git Integration** - Ghost branches for isolated changes
-- **Live Preview** - Preview your app within the IDE
-- **Signal Feed** - Real-time event logging
+---
 
-## Tech Stack
+## What it does
 
-### Frontend
-- React 19 + Next.js 15.2
-- TypeScript 5.7
-- Tailwind CSS 4
-- Zustand (state management)
-- @dnd-kit (drag and drop)
-- Framer Motion (animations)
+- **Kanban workflow**: boards, columns, cards, drag & drop.
+- **Card context**: attach folders/files to a card for scoped work.
+- **Local agent panel**: connect to a local provider (e.g. Ollama / LM Studio) and work inside the IDE.
+- **File explorer + editor**: browse project files and edit them in-app.
+- **Git integration**: “ghost branches” for isolated changes per task.
 
-### Backend (Tauri)
-- Rust
+---
+
+## CV highlights — real engineering problems solved
+
+This project intentionally demonstrates practical, production-style problem solving:
+
+- **Secrets & repo hygiene**
+  - Prevented accidental credential leaks by keeping real keys in `.env.local` (gitignored) and committing placeholders in `.env.example`.
+  - Purged previously committed secrets from git history (history rewrite) and documented safe practices.
+- **Security hardening for desktop apps**
+  - Reduced Tauri permission surface area by removing overly broad capabilities (`fs:read-all`, `fs:write-all`, `shell:allow-execute`) and tightening CSP `connect-src`.
+  - Removed an unused shell plugin to reduce attack surface and dependency weight.
+- **Dependency vulnerability response**
+  - Used `pnpm audit`, identified high/moderate advisories, and upgraded to patched versions.
+- **Tooling / build reliability**
+  - Ensured the repo builds cleanly (Next.js export + Rust `cargo check`) and added a working ESLint v9 flat config for consistent CI linting.
+- **UX & state architecture**
+  - Modular React UI + Zustand stores, with IDE-style panels and workflows designed for long sessions.
+
+---
+
+## Issues encountered & fixed (selected)
+
+These are the kinds of “real project” problems I intentionally worked through (and fixed) while building VIRAITH:
+
+- **Accidentally committed an API key** → moved secrets to `.env.local`, committed placeholders in `.env.example`, and purged the key from git history.
+- **Security advisories in dependencies (`pnpm audit`)** → upgraded to patched versions (e.g. Next.js) and verified the lockfile resolves to non-vulnerable releases.
+- **ESLint v9 config breakage** (missing `eslint.config.*`) → added an ESLint flat config wired to `next/core-web-vitals` so CI linting is deterministic.
+- **Desktop-app permission scope too broad** → removed “allow everything” Tauri capabilities (like `fs:read-all` / `fs:write-all`) and tightened CSP networking.
+- **Local agent connectivity pain** (localhost timeouts / CORS / provider differences) → added explicit connection checks and provider configuration UX in the UI.
+
+---
+
+## Tech stack
+
+**Frontend**
+- Next.js + React + TypeScript
+- Monaco editor
+- Zustand + TanStack Query
+- Tailwind CSS
+
+**Backend (Tauri/Rust)**
+- Tauri 2
 - SQLite (rusqlite)
-- git2 (Git operations)
-- notify (file watching)
+- git2
 
-## Getting Started
+---
+
+## Getting started
 
 ### Prerequisites
+
 - Node.js 20+
 - pnpm
-- Rust (for Tauri)
+- Rust toolchain (Tauri)
 
-### Installation
+### Run dev
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd viraith-ide
-
-# Install dependencies
 pnpm install
-
-# Run in development mode
 pnpm tauri:dev
+```
 
-# Build for production
+### Build
+
+```bash
 pnpm tauri:build
 ```
 
-## Project Structure
+---
 
-```
-viraith-ide/
-├── src/                    # React frontend
-│   ├── app/               # Next.js app router
-│   ├── components/        # React components
-│   │   ├── kanban/       # Kanban board components
-│   │   ├── layout/       # Layout components
-│   │   ├── preview/      # Live preview
-│   │   ├── signal/       # Signal feed
-│   │   └── terminal/     # Terminal component
-│   ├── lib/              # Utilities and API bindings
-│   ├── store/            # Zustand stores
-│   └── types/            # TypeScript types
-├── src-tauri/             # Rust backend
-│   ├── src/
-│   │   ├── commands/     # Tauri commands
-│   │   ├── database/     # SQLite operations
-│   │   ├── files.rs      # File operations
-│   │   └── git.rs        # Git operations
-│   └── Cargo.toml
-├── documentation/         # Project documentation
-└── claude/               # Claude skill files
-```
+## Environment variables
 
-## Design
+See `.env.example` for variable names.
 
-VIRAITH uses a terminal-inspired "Caffeine" theme:
-- Dark background (#0a0a0a)
-- Muted accent colors (warm amber #b8956b)
-- JetBrains Mono typography
-- Minimal, focused UI without harsh colors
+- Put real keys in `.env.local` (gitignored)
+- Do not commit API keys/tokens
 
-## Phase 2 (Coming Soon)
+## Security
 
-- LLM-powered agent execution
-- Voice commands (Whisper)
-- Multi-agent swarm coordination
-- Natural language terminal
-- Gamification and analytics
+See [SECURITY.md](SECURITY.md).
+
+---
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

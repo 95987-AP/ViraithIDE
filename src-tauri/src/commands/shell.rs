@@ -1,5 +1,3 @@
-use tauri::State;
-
 #[tauri::command]
 pub async fn reveal_in_finder(path: String) -> Result<(), String> {
     #[cfg(target_os = "macos")]

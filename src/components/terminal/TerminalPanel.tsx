@@ -64,13 +64,13 @@ export function TerminalPanel({ height, onResizeStart, isResizing }: TerminalPan
               )}
             >
               <span className="truncate max-w-[120px]">{session.name}</span>
-              <button
+              <span
                 onClick={(e) => handleCloseTerminal(e, session.id)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-surface-elevated rounded transition-opacity"
+                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-surface-elevated rounded transition-opacity cursor-pointer"
                 title="Close terminal"
               >
                 <X className="w-3 h-3" />
-              </button>
+              </span>
             </button>
           ))}
 

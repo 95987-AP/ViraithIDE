@@ -21,8 +21,9 @@ export function ChatPanel({ isOpen, onClose, width = 288 }: ChatPanelProps) {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProvider] = useState<'ollama' | 'lm-studio'>('ollama');
-  const [model, setModel] = useState('qwen2.5:7b');
+  const [model, setModel] = useState('qwen2.5-coder:7b-instruct-q8_0');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   const { cards, addCard, deleteCard, columns } = useBoardStore();
   const { projectPath, fileTree } = useFileStore();
@@ -34,12 +35,17 @@ export function ChatPanel({ isOpen, onClose, width = 288 }: ChatPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Set mounted state on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Check agent availability on mount when opened
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && mounted) {
       checkAvailability();
     }
-  }, [isOpen, provider]);
+  }, [isOpen, provider, mounted]);
 
   const checkAvailability = async () => {
     localAgent.configure({ provider });
@@ -427,7 +433,7 @@ export function ChatPanel({ isOpen, onClose, width = 288 }: ChatPanelProps) {
               Ask me to create cards, analyze your project, or suggest improvements.
             </p>
             <p className="text-2xs text-text-dim mt-2 font-mono">
-              Try: "Create 3 tasks for building a login page"
+              Try: &quot;Create 3 tasks for building a login page&quot;
             </p>
           </div>
         )}

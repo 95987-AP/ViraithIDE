@@ -32,7 +32,7 @@ type LocalProvider = 'ollama' | 'lm-studio' | 'custom';
 class LocalAgent {
   private provider: LocalProvider = 'ollama';
   private baseUrl: string = 'http://localhost:11434'; // Ollama default
-  private model: string = 'qwen2.5:7b';
+  private model: string = 'qwen2.5-coder:7b-instruct-q8_0';
   private tools: Map<string, Tool> = new Map();
   private conversationHistory: LocalAgentMessage[] = [];
 

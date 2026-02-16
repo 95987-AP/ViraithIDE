@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -23,6 +23,11 @@ export function Column({ column, cards }: ColumnProps) {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState('');
   const [newCardDescription, setNewCardDescription] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -117,7 +122,7 @@ export function Column({ column, cards }: ColumnProps) {
         </SortableContext>
 
         {/* Add card inline */}
-        {isAddingCard ? (
+        {mounted && (isAddingCard ? (
           <div className="p-2 border border-border-subtle rounded-sm bg-surface-elevated">
             <input
               type="text"
@@ -169,7 +174,7 @@ export function Column({ column, cards }: ColumnProps) {
             <Plus className="w-3 h-3" />
             Add Card
           </button>
-        )}
+        ))}
       </div>
     </div>
   );
